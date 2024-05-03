@@ -1,6 +1,6 @@
 ---
 title: "GAE10: PCA & NMDS"
-author: "Your Name Here"
+author: "D. Lohwasser"
 format: 
   html:
     theme: custom.scss
@@ -25,6 +25,11 @@ library(latex2exp)
 library(patchwork)
 library(kableExtra)
 library(tidyverse)
+library(vegan)
+library(ggrepel)
+library(FactoMineR)
+library(factoextra)
+
 
 options(scipen = 10)
 
@@ -61,9 +66,58 @@ knitr::include_graphics("Kingfishers.png")
 # classifications (qualitative supplemental variables, columns 14-17) in
 # colors.csv. Please explore any grouping and/or patterning among the species
 # and their ecological/behavioral traits.
+scen1data <- read_csv ("colors.csv", show_col_types = FALSE)
+```
+
+```{r}
+#| label: fig-scen1biplot
+#| fig-cap: "place holder"
+
+
+scen1PCA <- PCA (
+  scen1data,
+  quanti.sup = 13,
+  quali.sup =c(1,14:17),
+  graph =FALSE
+)
+
+Indfig <- fviz_pca_ind(
+  scen1PCA,
+  repel=TRUE,
+  label="none",
+  habillage = c(
+    "Light_environment",
+    "Parental_care",
+    "Territoriality",
+    "Hunting_strategy"),
+ # addEllipses = TRUE
+)
+
+Varfig <- fviz_pca_var(
+  scen1PCA,
+  repel=TRUE,
+  label="none",
+ )
+
+Indfig + Varfig
 
 ```
 
+We ran our data through [@FactoMineR] from the package. According to Fig. 1. there are strong correlations with the first principal component, nape, mantel, rump, wing correlaets, which are all positvely correlated to the color blue. All values are almost at 90 degrees, suggesting that the patches on these birds are doing something pretty strong. Principal component 1 tends to be how blue the bird is, while Principal component 2 tends to be how red and green the underside of the bird is. These principal components suggest behavioral and ecological patterns of the birds colors, such as aerial catchers being less blue and water divers being more blue.
+
+```{=html}
+<!-- Maybe only show one plot that you think is the main story
+
+In this paper they don't use the PCA how to seperate out, they were using it 
+
+to summarize colors, thye take a different approach all together
+
+They're p1. going from red to green to blue purple, thats the data we were using for our PCA
+
+No huge differences, but maybe being aerial forager less blue, diver more blue..why?
+
+summary(scen1PCA)-->
+```
 ### References:
 
 ------------------------------------------------------------------------
@@ -81,13 +135,52 @@ In Summer 2011, the researchers visited 17 deer exclosures in upland forests of 
 ```{r}
 #| label: Scenario2DataImport
 
-# I have provided data representing the proportion of quadrats each species
-# (columns) was found in as a an index of abundance within each deer exclosure
-# (rows) in Sabo_etal_data.csv.
-
-# Use NMDS to explore the differences in plant community inside and outside the
-# deer exclosures, then test for differences in the plant communities between
-# the deer exclosures and the adjacent forests.
+#I have provided data representing the proportion of quadrats each species 
+#(columns) was found in as a index of abundance within each species
+df2 <- read_csv("Sabo_etal_data.csv", show_col_types =FALSE)
 ```
+
+```{r}
+#| label: scen2nMDS
+#| results: "hide"
+
+scen2mds <-metaMDS(
+  df2[,-c(1:2)],
+  k=4
+)
+
+scen2mds$stress
+
+```
+
+```{r}
+#| label: tbl-deerPERMANOVA
+#| tbl-cap: "PERMANOVA to test for a difference in plant assemblages between deer exclusion areas and adjacent areas"
+
+deerPERMANOVA <- adonis2(
+  df2[,-c(1,2)] ~ Treatment, 
+  data=df2, 
+  by = "margin",
+  permutations = 10001
+)
+
+kbl(
+  deerPERMANOVA, 
+  format = "markdown",
+  degits = c(0,3,3,3,3),
+  col.names = c(
+    "df",
+    "SS",
+    "$R^2$",
+    "F",
+    "P"
+    
+  )
+)
+
+
+```
+
+We ran a PERMANOVA from the Adonis2 [@vegan]package and obtained a p-value of 0.987, therefore we fail to reject the null hypothesis that the communities are the same.
 
 ### References:
